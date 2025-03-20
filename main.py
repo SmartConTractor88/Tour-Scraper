@@ -4,10 +4,15 @@ import selectorlib # extract only specific information from the source code
 
 import smtplib, ssl
 import os
+import time
+
+# connect to database
+import sqlite3
+connection = sqlite3.connect("data.db")
 
 url = "http://programmer100.pythonanywhere.com/tours/"
 
-id="displaytimer" # id code for the desired part
+# id="displaytimer" # id code for the desired part
 
 def scrape(url):
     """Scrape the page source from the URL"""
@@ -40,23 +45,42 @@ def send_email(message):
 
 
 def store_extracted():
-    with open("data.txt", "a") as file:
-        file.write(extracted+"\n")
+    row = extracted.split(",") # create a list
+    row = [item.strip() for item in row] # remove spaces in each item
+    # band, location, date = row
+    cursor = connection.cursor()
+    # each item to replace one question mark:
+    cursor.execute("INSERT INTO events VALUES (?,?,?)", row)
+    connection.commit()
 
 
 def read_extracted():
-    with open("data.txt", "r") as file:
-        return file.read()
+    row = extracted.split(",") # create a list
+    row = [item.strip() for item in row] # remove spaces in each item
+    band, location, date = row
+
+
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT * FROM events WHERE band=? AND location=? AND date=?", 
+                   (band, location, date)) # execute SQL queries
+    
+
+    rows = cursor.fetchall()
+    print(rows)
+    return rows
 
 
 if __name__ == "__main__":
-    scraped = scrape(url)
-    extracted = extract(scraped)
-    print(extracted)
-    content = read_extracted()
-    if extracted != "No upcoming tours": # if there is an event...
-        if extracted not in content: # if the event is new...
-            store_extracted()
-            send_email(message="New event was found:") # send it on email
+    while True:
+        scraped = scrape(url)
+        extracted = extract(scraped)
+        print(extracted)
 
+        if extracted != "No upcoming tours": # if there is an event...
+            row = read_extracted()
+            if not row: # if the event is new...
+                store_extracted()
+                send_email(message="New event was found:") # send it on email
+        time.sleep(5)
 
