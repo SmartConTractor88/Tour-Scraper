@@ -2,6 +2,8 @@ import requests # work with urls
 
 import selectorlib # extract only specific information from the source code
 
+import smtplib, ssl
+import os
 
 url = "http://programmer100.pythonanywhere.com/tours/"
 
@@ -22,8 +24,19 @@ def extract(source):
     return value
 
 
-def send_email():
-    print("YES IT WORKS")
+def send_email(message):
+    host = "smtp.gmail.com"
+    port = 465
+
+    username = "zigmarszigmars19@gmail.com"
+    password = os.getenv("JBN@gmail_APP_PASS_01")
+
+    receiver = "zigmarszigmars19@gmail.com"
+    context = ssl.create_default_context()
+
+    with smtplib.SMTP_SSL(host, port, context=context) as server:
+        server.login(username, password)
+        server.sendmail(username, receiver, message)
 
 
 def store_extracted():
@@ -44,6 +57,6 @@ if __name__ == "__main__":
     if extracted != "No upcoming tours": # if there is an event...
         if extracted not in content: # if the event is new...
             store_extracted()
-            send_email() # send it on email
+            send_email(message="New event was found:") # send it on email
 
 
